@@ -25,7 +25,6 @@ jobs:
     - name: Install Azure CLI
       uses: azure/command-installer@v1
       with:
-        cmd: 'pip install azure-cli'
         cmd: 'az'
 
     - name: Install dependencies and build
