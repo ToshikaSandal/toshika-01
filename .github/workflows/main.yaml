@@ -1,40 +1,54 @@
-name: CI/CD Workflow
+name: Deploy to Azure Virtual Machine
 
 on:
   push:
     branches:
       - main
 
-
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-    # Checkout the repository
-    - name: Checkout Repository
-      uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
-    # Set up Node.js
-    - name: Setup Node.js
-      uses: actions/setup-node@v2
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
       with:
-        node-version: '14'
+        node-version: ${{ matrix.node-version }}
 
-    # Install frontend dependencies and build
-    - name: Install Frontend Dependencies and Build
+    - name: Set Azure credentials
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Install Azure CLI
+      uses: azure/command-installer@v1
+      with:
+        cmd: 'az'
+
+    - name: Install dependencies and build
       run: |
-        cd frontend
         npm install
         npm run build
 
-    # Install backend dependencies and run tests
-    - name: Install Backend Dependencies and Test
+    - name: Deploy to Azure Virtual Machine
       run: |
-        cd backend
-        npm install
-        npm test
-
-    # Deployment step (example: deploy to AWS)
-    - name: Deploy
-      run: |
+        az vm run-command invoke \
+          --resource-group 123-march \
+          --name toshika \
+          --command-id npm run start \
+          --scripts '
+            sudo apt-get update
+            sudo apt-get install -y unzip
+            sudo apt-get install -y npm
+            git clone https://github.com/ToshikaSandal/toshika-01.git
+            cd toshika-01
+            npm install
+            npm run build
+            sudo systemctl stop my-node-app
+            sudo rm -rf /var/www/my-node-app/*
+            sudo mv build /var/www/my-node-app
+            sudo systemctl start my-node-app
+          '
+    
