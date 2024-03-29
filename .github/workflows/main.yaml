@@ -30,8 +30,8 @@ jobs:
     - name: Deploy to Azure Virtual Machine
       run: |
         az vm run-command invoke \
-          --resource-group 123-march #myResourceGroup \
-          --name toshika #vm \
+          --resource-group 123-march  \
+          --name toshika  \
           --command-id RunShellScript \
           --scripts '
             sudo apt-get update
