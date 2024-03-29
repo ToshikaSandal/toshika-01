@@ -22,6 +22,11 @@ jobs:
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
+    - name: Install Azure CLI
+      uses: azure/command-installer@v1
+      with:
+        cmd: 'az'
+
     - name: Install dependencies and build
       run: |
         npm install
@@ -29,9 +34,10 @@ jobs:
 
     - name: Deploy to Azure Virtual Machine
       run: |
-          --resource-group 123-march \
-          --name toshika \
-          --command-id npm run start \
+        az vm run-command invoke \
+          --resource-group 123-march #myResourceGroup \
+          --name toshika #vm \
+          --command-id RunShellScript \
           --scripts '
             sudo apt-get update
             sudo apt-get install -y unzip
@@ -45,4 +51,6 @@ jobs:
             sudo mv build /var/www/my-node-app
             sudo systemctl start my-node-app
           '
-    
+      env:
+        VM_USERNAME: ${{ secrets.VM_USERNAME }}
+        VM_PASSWORD: ${{ secrets.VM_PASSWORD }}
