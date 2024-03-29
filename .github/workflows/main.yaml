@@ -20,9 +20,9 @@ jobs:
     - name: Set Azure credentials
       uses: azure/login@v1
       with:
-         client_id:  ${{ secrets.client_id }}
-         subscription_id: ${{ secrets.subscription_id }}
-         tenant_id:  ${{ secrets.tenant_id }}
+         client_id:  ${{ secrets.CLIENT_ID}}
+         subscription_id: ${{ secrets.SUBSCRIPTION_ID}}
+         tenant_id:  ${{ secrets.TENANT_ID }}
 
     - name: Install dependencies and build
       run: |
