@@ -22,8 +22,11 @@ jobs:
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-    
-
+    - name: Install Azure CLI
+      uses: azure/command-installer@v1
+      with:
+        cmd: 'az'
+        
     - name: Install dependencies and build
       run: |
         npm install
