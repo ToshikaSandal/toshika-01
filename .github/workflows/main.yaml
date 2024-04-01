@@ -1,38 +1,56 @@
-name: Build and Push to ACR
+name: Deploy to Azure Virtual Machine
+
 on:
   push:
     branches:
       - master
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
 jobs:
   build:
-    name: 'Build and Push to ACR'
     runs-on: ubuntu-latest
 
-    defaults:
-      run:
-        shell: bash
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    - uses: actions/checkout@v3
 
-      - name: Build React frontend
-        run: |
-          cd frontend  # Navigate to the directory containing your React frontend
-          npm install  # Install dependencies
-          npm run build  # Build the React app
-          cd ..  # Navigate back to the root directory
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
 
-      - name: Azure Login
-        uses: Azure/login@v1
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          enable-AzPSSession: true
+    - name: Set Azure credentials
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Install Azure CLI
+      uses: azure/command-installer@v1
+      with:
+        cmd: 'az'
+
+    - name: Install dependencies and build
+      run: |
+        npm install
+        npm run build
+
+    - name: Deploy to Azure Virtual Machine
+      run: |
+        az vm run-command invoke \
+          --resource-group 123-march #myResourceGroup \
+          --name toshika #vm \
+          --command-id RunShellScript \
+          --scripts '
+            sudo apt-get update
+            sudo apt-get install -y unzip
+            sudo apt-get install -y npm
+            git clone https://github.com/ToshikaSandal/toshika-01.git
+            cd toshika-01
+            npm install
+            npm run build
+            sudo systemctl stop my-node-app
+            sudo rm -rf /var/www/my-node-app/*
+            sudo mv build /var/www/my-node-app
+            sudo systemctl start my-node-app
+          '
+      env:
+        VM_USERNAME: ${{ secrets.VM_USERNAME }}
+        VM_PASSWORD: ${{ secrets.VM_PASSWORD }}
