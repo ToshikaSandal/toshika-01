@@ -23,7 +23,7 @@ jobs:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
     - name: Install Azure CLI
-      uses: azure/command-installer@v1
+      uses: azure/CLI@v1
       with:
         cmd: 'az'
         
