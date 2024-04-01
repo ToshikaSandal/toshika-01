@@ -17,14 +17,21 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
 
-    - name: Set Azure credentials
-      uses: azure/login@v1
-      with:
-        creds: ${{ secrets.AZURE_CREDENTIALS }}
-
+    # Install Azure CLI
     - name: Install Azure CLI
-       run: |
-            sudo apt-get update && sudo apt-get install -y azure-cli
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y azure-cli
+
+    # Display contents of AZURE_CREDENTIALS secret
+    - name: Debug Azure Credentials
+      run: |
+        echo "${{ secrets.AZURE_CREDENTIALS }}"
+
+    # Login to Azure
+    - name: Login to Azure
+      run: |
+        az login --service-principal -u "${{ secrets.AZURE_CLIENT_ID }}" -p "${{ secrets.AZURE_CLIENT_SECRET }}" --tenant "${{ secrets.AZURE_TENANT_ID }}"
 
     - name: Install dependencies and build
       run: |
