@@ -1,49 +1,30 @@
-name: Azure Deployment
-
+name: Build and Push to ACR
 on:
   push:
     branches:
-      - master  # Change this to the branch you want to deploy from
+      - masters
+permissions:
+  contents: read
+  pages: write
+  id-token: write
 
 jobs:
-  build-and-deploy:
+  build:
+    name: 'Build and Push to ACR'
     runs-on: ubuntu-latest
 
+    defaults:
+      run:
+        shell: bash
+
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    - name: Setup Node.js environment
-      uses: actions/setup-node@v2
-      with:
-        node-version: '18.x'
-
-    - name: Install dependencies
-      run: npm install  # Or yarn install if you're using Yarn
-
-    - name: Build
-      run: npm run build  # Or any other build command you might have
-
-    - name: Deploy to Azure VM
-      uses: azure/login@v1
-      with:
-        creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-    - name: Copy files to Azure VM
-      uses: appleboy/scp-action@master
-      with:
-        host: ${{ secrets.VM_IP }}
-        username: ${{ secrets.VM_USERNAME }}
-        password: ${{ secrets.VM_PASSWORD }}
-        source: "dist"  # Or the folder where your build artifacts are
-        target: "/var/www/html"  # Or the directory you want to deploy to on Azure VM
-
-    - name: Restart Node.js application
-      uses: appleboy/ssh-action@master
-      with:
-        host: ${{ secrets.VM_IP }}
-        username: ${{ secrets.VM_USERNAME }}
-        password: ${{ secrets.VM_PASSWORD }}
-        port: 22
-        script: |
-          npm run start  # Or any other command to restart your Node.js application
+      - name: Azure Login
+        uses: Azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          enable-AzPSSession: true
