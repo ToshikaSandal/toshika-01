@@ -1,52 +1,49 @@
-name: Deploy to Azure Virtual Machine
+name: Azure Deployment
 
 on:
   push:
     branches:
-      - master
-      
+      - master  # Change this to the branch you want to deploy from
+
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - name: Checkout repository
+      uses: actions/checkout@v2
 
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v3
+    - name: Setup Node.js environment
+      uses: actions/setup-node@v2
       with:
-        node-version: ${{ matrix.node-version }}
+        node-version: '18.x'
 
-    - name: Set Azure credentials
+    - name: Install dependencies
+      run: npm install  # Or yarn install if you're using Yarn
+
+    - name: Build
+      run: npm run build  # Or any other build command you might have
+
+    - name: Deploy to Azure VM
       uses: azure/login@v1
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
-        auth-type: SERVICE_PRINCIPAL
 
-    - name: Install dependencies and build
-      run: |
-        npm install
-        npm run build
+    - name: Copy files to Azure VM
+      uses: appleboy/scp-action@master
+      with:
+        host: ${{ secrets.VM_IP }}
+        username: ${{ secrets.VM_USERNAME }}
+        password: ${{ secrets.VM_PASSWORD }}
+        source: "dist"  # Or the folder where your build artifacts are
+        target: "/var/www/html"  # Or the directory you want to deploy to on Azure VM
 
-    - name: Deploy to Azure Virtual Machine
-      run: |
-        az vm run-command invoke \
-          --resource-group 123-march  \
-          --name toshika  \
-          --command-id RunShellScript \
-          --scripts '
-            sudo apt-get update
-            sudo apt-get install -y unzip
-            sudo apt-get install -y npm
-            git clone https://github.com/ToshikaSandal/toshika-01.git
-            cd toshika-01
-            npm install
-            npm run build
-            sudo systemctl stop my-node-app
-            sudo rm -rf /var/www/my-node-app/*
-            sudo mv build /var/www/my-node-app
-            sudo systemctl start my-node-app
-          '
-      env:
-        VM_USERNAME: ${{ secrets.VM_USERNAME }}
-        VM_PASSWORD: ${{ secrets.VM_PASSWORD }}
+    - name: Restart Node.js application
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.VM_IP }}
+        username: ${{ secrets.VM_USERNAME }}
+        password: ${{ secrets.VM_PASSWORD }}
+        port: 22
+        script: |
+          npm run start  # Or any other command to restart your Node.js application
