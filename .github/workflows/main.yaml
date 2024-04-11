@@ -1,4 +1,4 @@
-name: Deploy to Azure Virtual Machine
+name: Deploy to Azure Web App
 
 on:
   push:
@@ -6,57 +6,26 @@ on:
       - master
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - name: Checkout repository
+      uses: actions/checkout@v2
 
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v3
+    - name: Set up Node.js
+      uses: actions/setup-node@v2
       with:
-        node-version: ${{ matrix.node-version }}
+        node-version: '14'
 
-    # Install Azure CLI
     - name: Install Azure CLI
       run: |
         sudo apt-get update
-        sudo apt-get install -y azure-cli
+        sudo apt-get install -y curl
+        curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
 
-    # Display contents of AZURE_CREDENTIALS secret
-    - name: Debug Azure Credentials
-      run: |
-        echo "${{ secrets.AZURE_CREDENTIALS }}"
-
-    # Login to Azure
     - name: Login to Azure
-      run: |
-        az login --service-principal -u "${{ secrets.AZURE_CLIENT_ID }}" -p "${{ secrets.AZURE_CLIENT_SECRET }}" --tenant "${{ secrets.AZURE_TENANT_ID }}"
+      run: az login --service-principal -u "${{ secrets.AZURE_CLIENT_ID }}" -p "${{ secrets.AZURE_CLIENT_SECRET }}" --tenant "${{ secrets.AZURE_TENANT_ID }}"
 
-    - name: Install dependencies and build
-      run: |
-        npm install
-        npm run build
-
-    - name: Deploy to Azure Virtual Machine
-      run: |
-        az vm run-command invoke \
-          --resource-group 123-march #myResourceGroup \
-          --name toshika #vm \
-          --command-id RunShellScript \
-          --scripts '
-            sudo apt-get update
-            sudo apt-get install -y unzip
-            sudo apt-get install -y npm
-            git clone https://github.com/ToshikaSandal/toshika-01.git
-            cd toshika-01
-            npm install
-            npm run build
-            sudo systemctl stop my-node-app
-            sudo rm -rf /var/www/my-node-app/*
-            sudo mv build /var/www/my-node-app
-            sudo systemctl start my-node-app
-          '
-      env:
-        VM_USERNAME: ${{ secrets.VM_USERNAME }}
-        VM_PASSWORD: ${{ secrets.VM_PASSWORD }}
+    - name: Deploy to Azure Web App
+      run: az webapp deployment source config-zip --resource-group ll-vm --name toshika --src "$(Pipeline.Workspace)/<path-to-your-zip-file>.zip"
